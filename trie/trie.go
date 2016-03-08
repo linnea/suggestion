@@ -2,17 +2,15 @@ package trie
 
 import (
    "os" 
-   "fmt"
    "bufio"
    "log"
    "io"
+   "github.com/linneakw/suggestion/node"
 )
 
 // Trie type
 type Trie struct {
-    NumWords int
-    Children map[string]*Trie
-    complete bool
+    root *TrieNode
 }
 
 // NewTrie constructor for the trie
@@ -25,50 +23,18 @@ func NewTrie(file string) *Trie {
         ReadFile("../data/wordsEn.txt")
     }
     
-    return &Trie{Children: map[string]*Trie{}}
+    return &Trie{root: NewTrieNode()}
 }
 
-// AddEntry takes a string and adds it to the trie
-func (trie *Trie) AddEntry(entry string) { 
-    fmt.Println("Entry is", entry)
-    // if numwords < 50
-        // go to head node
-        // try to find first letter in NODES map
-        // if doesn't match string (or not first letter) {
-            // add whole word to map
-        //} else {
-            // 
-        //}
-        /*
-    for index, runeValue := range string {
-        fmt.Printf("%#U starts at byte position %d\n", runeValue, index)
-    }*/
-}
-// FindEntries
-//func (trie *Trie) FindEntries(prefix string, max uint8) []string {}
 
-// ReadFile is
-func ReadFile(infilePath string) {
-    // open the file
-    infile, err := os.Open(infilePath)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer infile.Close()
 
-    loadTrie(infile)
-    
-    //creates and loads a trie from any io.Reader stream
-    //var stream := io.Reader
-    //loadTrie(stream.Read(n int, err error)
-}
 
 // LoadTrie loads the trie
-func loadTrie(stream io.Reader) {
+func LoadTrie(stream io.Reader) {
     scanner := bufio.NewScanner(stream)
         scanner.Split(bufio.ScanLines)
     for scanner.Scan() {
-        fmt.Println(scanner.Text())
+        //this.AddEntry(scanner.Text())
         // each line
     }
 
@@ -83,6 +49,74 @@ func loadTrie(stream io.Reader) {
         fmt.Println(idx, r)
     }*/
 }
+
+// printHelper helps print out the trie
+func PrintTrie(node *Trie,) {
+    fmt.Println(printHelper("", root))
+}
+
+// PrintTree prints out the tree
+// Worked with Conrad to understand implementation style
+func (trie *Trie) printHelper(entry string, node *TrieNode) {
+    
+    //fmt.Println()
+    count := 0
+    if (node.complete) {
+        fmt.Println(entry)
+    } else {
+        for key, child := range trie.children {
+            string := string(key[0]))
+            if (trie.complete) {
+                return string
+            } else {
+                fmt.Print(" ")
+            }
+            count++
+            string += child.printHelper(string, child)
+            return string
+        }
+        for i := 0; i < count; i++ {
+            fmt.Print("| ")
+        }
+    }
+}
+
+
+
+// AddEntry takes a string and adds it to the trie
+func (trie *Trie) AddEntry(entry string) *Trie { 
+    if len(entry) == 0 {
+        trie.complete = true;
+        return trie
+    }
+    /*
+    // if numwords < 50
+    if (trie.NumWords < 50) {
+        for index, runeValue := range string {
+            trie.Children[runeValue]
+        }
+    }
+        // go to head node
+        // try to find first letter in NODES map
+        // if doesn't match string (or not first letter) {
+            // add whole word to map
+        //} else if numwords ==50 {
+            // reformat trie node's children
+        //}*/
+    
+    first := string(entry[0])
+    rest := string(entry[1:])
+    
+    child, ok := trie.children[first];
+    
+    if !ok {
+        child = NewTrie(first)
+        trie.children[first] = child
+    }
+    return child.AddEntry(rest)
+}
+// FindEntries
+//func (trie *Trie) FindEntries(prefix string, max uint8) []string {}
 
 // another function that accepts a file path, opens it as an io.Reader stream, and calls the ffunc
 // passed in a file path? 
