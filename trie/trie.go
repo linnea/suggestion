@@ -2,39 +2,59 @@ package trie
 
 import (
    "os" 
+   "fmt"
    "bufio"
    "log"
    "io"
-   "github.com/linneakw/suggestion/node"
+   "strings"
 )
 
 // Trie type
 type Trie struct {
-    root *TrieNode
+    Root *TrieNode
+    Words int
 }
 
 // NewTrie constructor for the trie
-func NewTrie(file string) *Trie {
+func NewTrie() *Trie {
     // head node?
-    
-    if (len(file) > 0) {
-        ReadFile(file);
+    dir := ".././data/"
+    NewTrie := &Trie{Root: NewTrieNode("")}
+    //file := os.Args[1]
+    if (len(os.Args) > 1) {
+        file := string(os.Args[1])
+        NewTrie.ReadFile(dir + file);
+        fmt.Println("Reading " + file)
     } else {
-        ReadFile("../data/wordsEn.txt")
+        NewTrie.ReadFile(dir + "text.txt")
     }
     
-    return &Trie{root: NewTrieNode()}
+    return NewTrie
 }
 
+// ReadFile reads the file
+func (trie *Trie) ReadFile(infilePath string) {
+        // open the file
+        infile, err := os.Open(infilePath)
+        if err != nil {
+            log.Fatal(err)
+        }
+        defer infile.Close()
 
+        trie.LoadTrie(infile)
+        
+        //creates and loads a trie from any io.Reader stream
+        //var stream := io.Reader
+        //loadTrie(stream.Read(n int, err error)
+    }
 
 
 // LoadTrie loads the trie
-func LoadTrie(stream io.Reader) {
+func (trie *Trie) LoadTrie(stream io.Reader) {
     scanner := bufio.NewScanner(stream)
         scanner.Split(bufio.ScanLines)
     for scanner.Scan() {
-        //this.AddEntry(scanner.Text())
+        trie.AddEntry(scanner.Text())
         // each line
     }
 
@@ -50,44 +70,40 @@ func LoadTrie(stream io.Reader) {
     }*/
 }
 
-// printHelper helps print out the trie
-func PrintTrie(node *Trie,) {
-    fmt.Println(printHelper("", root))
-}
-
-// PrintTree prints out the tree
+// PrintHelper prints out the tree
 // Worked with Conrad to understand implementation style
-func (trie *Trie) printHelper(entry string, node *TrieNode) {
-    
+func printHelper(entry string, node *TrieNode) {
     //fmt.Println()
-    count := 0
     if (node.complete) {
         fmt.Println(entry)
-    } else {
-        for key, child := range trie.children {
-            string := string(key[0]))
-            if (trie.complete) {
-                return string
-            } else {
-                fmt.Print(" ")
-            }
-            count++
-            string += child.printHelper(string, child)
-            return string
-        }
-        for i := 0; i < count; i++ {
-            fmt.Print("| ")
-        }
+    } 
+    if (len(node.children) > 0 ) {
+        for key, child := range node.children {
+            newEntry := entry + key
+            //fmt.Print(string(entry[:len(entry) - 1]), ": ")
+            printHelper(newEntry, child)
+        } 
     }
 }
 
+// PrintTrie printHelper helps print out the trie
+func (trie *Trie) PrintTrie() {
+    printHelper("", trie.Root)
+}
 
+// AddEntry it into the trie
+// lower case for simplicity
+func (trie *Trie) AddEntry(entry string) {
+    trie.Words++
+    strings.ToLower(entry)
+    trie.Root.AddEntrie(entry)
+}
 
-// AddEntry takes a string and adds it to the trie
-func (trie *Trie) AddEntry(entry string) *Trie { 
+// AddEntrie takes a string and adds it to the trie
+func (node *TrieNode) AddEntrie(entry string) *TrieNode { 
     if len(entry) == 0 {
-        trie.complete = true;
-        return trie
+        node.complete = true;
+        return node
     }
     /*
     // if numwords < 50
@@ -107,17 +123,56 @@ func (trie *Trie) AddEntry(entry string) *Trie {
     first := string(entry[0])
     rest := string(entry[1:])
     
-    child, ok := trie.children[first];
+    child, ok := node.children[first];
     
     if !ok {
-        child = NewTrie(first)
-        trie.children[first] = child
+        child = NewTrieNode(first)
+        node.children[first] = child
     }
-    return child.AddEntry(rest)
+    return child.AddEntrie(rest)
 }
-// FindEntries
-//func (trie *Trie) FindEntries(prefix string, max uint8) []string {}
 
-// another function that accepts a file path, opens it as an io.Reader stream, and calls the ffunc
-// passed in a file path? 
 
+// FindEntries finds the matches of a given prefix
+func (trie *Trie) FindEntries(prefix string, max uint8) *[]string {
+    matches := make([]string, 0, max)
+    prefix = strings.ToLower(prefix)
+    node := trie.Root // start with the root
+    updated := false
+    // go through all of the prefix items
+    for i := 0; i < len(prefix); i++ {
+        // go over all of the node's children
+        for key, child := range node.children {
+            if (string(prefix[i]) == key) {
+                node = child
+                updated = true
+            }
+        }
+        // if the node hasn't been updated after ranging all of the current root's items
+        if (!updated) {
+            return nil
+        }
+        
+        // otherwise keep going!
+    }
+    
+    match(node, &matches, prefix, max)
+    
+    return &matches
+    
+    // PHASE TWO
+    // return complete items from that node
+}
+
+func match(node *TrieNode, matches *[]string, prefix string, max uint8) {
+    if (node.complete && uint8(len(*matches)) < max) {
+        *matches = append(*matches, prefix)
+    } 
+    if (len(node.children) > 0 ) {
+        for key, child := range node.children {
+            newEntry := prefix + key
+           
+            match(child, matches, newEntry, max)
+        } 
+    }
+}

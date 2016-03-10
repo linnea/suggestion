@@ -11,6 +11,6 @@ type TrieNode struct {
 }
 
 // NewTrieNode acts as node constructor
-func NewTrieNode() *node {
-    return &node{children: map[string]*TrieNode{}}
+func NewTrieNode(value string) *TrieNode {
+    return &TrieNode{children: map[string]*TrieNode{}}
 }
