@@ -1,3 +1,14 @@
+<style>
+    .row {
+        margin-top: 20px;
+    }
+    
+    pre {
+        font-size: 12px;
+        font-family: 'Lato', 'Open Sans', sans-serif;
+    }
+</style>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,10 +16,42 @@
     <title>Search Suggestion</title>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <script src="http://code.angularjs.org/angular-1.0.0.min.js"></script>
+	<script src="js/app.js"></script>
 </head>
-<body>
-    <div class="container">
-        <input></input>
+<body ng-app="search">
+    <div class="container" ng-controller="SuggestCtrl">
+        <div class="row">
+            <form class="form-search">
+                <label>Search:</label>
+                
+                    <input 
+                    type="text" 
+                    ng-model="search" 
+                    ng-model-options="{ debounce: 700 }"
+                    class="input-medium search-query" placeholder="Search...">
+                    Max: <input type="number" ng-model="max" onchange="restrict(this);"></input>
+                    <button type="submit" class="btn btn-sm" ng-click="submit()">Search</button>
+            </form>
+            
+        </div>
+        <div class="row">
+            <pre>
+            <table ng-model="results">
+                
+                <tr ng-repeat="result in results">
+                    <td><a href="{{service}}{{result}}">{{result}}</a></td>
+                </tr>
+            </table></pre>
+            
+        </div>
     </div>
 </body>
 </html>
+
+<script>
+  function restrict(input) {
+    if (input.value < 10) input.value = 10;
+    if (input.value > 50) input.value = 50;
+  }
+</script>

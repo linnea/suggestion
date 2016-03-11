@@ -9,18 +9,17 @@ package main
 import (
     "net/http"
     "fmt"
-    "time"
     "encoding/json"
     "log"
     "runtime"
+    "strconv"
+    "github.com/linneakw/suggestion/trie"
 )
 
-// HelloResponse represents a response from the hello route
-type HelloResponse struct {
-    Name string `json:"name"`
-    Message string `json:"message"`
-    GeneratedAt time.Time `json:"generatedAt"`
-    foo int
+// TrieResponse represents a response from the suggestion route
+type TrieResponse struct {
+    Results *[]string `json:"Results"`
+    Service string `json:"Service"`
 }
 
 var memstats = new(runtime.MemStats)
@@ -42,15 +41,26 @@ func getMemStats(w http.ResponseWriter, r *http.Request) {
     } else {
         w.Header().Add("Content-Type", "application/json")
         w.Write(j)
+        
     }
 }
 
-func sayHello(w http.ResponseWriter, r *http.Request) {
-    name := r.URL.Path[len("/api/v1/hello/"):]
-    resp := HelloResponse{
-        Name: name, 
-        Message: "Hello " + name, 
-        GeneratedAt: time.Now()}
+
+ func returnTrie(w http.ResponseWriter, r *http.Request) {
+    query := r.URL.Query().Get("q")
+    max, err := strconv.Atoi(r.URL.Query().Get("max"))
+    if err != nil {
+        // if max isn't within acceptable range
+        if (max > 50 || max < 10) {
+            max = 20
+        }
+    }
+
+    searchTrie := trie.SearchTrie
+    resp := TrieResponse {
+            Results: searchTrie.FindEntries(query, uint8(max)),
+            Service: searchTrie.SuggestionService} 
+    
     // new instance by Name{}
     
     // Marshal usually refers to moving something over a network
@@ -62,14 +72,17 @@ func sayHello(w http.ResponseWriter, r *http.Request) {
     if nil != err {
         log.Println(err)
         // specify http status code
-        w.WriteHeader(500)
+        w.WriteHeader(598)
+        w.Write([]byte("Results are still loading, stay tuned"))
+        runtime.Gosched()
     } else {
         w.Header().Add("Content-Type", "application/json")
         w.Write(j)
+        log.Println(resp.Results)
     }
     
     
-    w.Write([]byte("Hello " + name))
+    //w.Write([]byte(*resp.Results))
 }
 
 func main() {
@@ -80,12 +93,14 @@ func main() {
     http.Handle("/", http.FileServer(http.Dir("./static")))    
     
     // handle func expects second argument as go file
-    http.HandleFunc("/api/v1/hello/", sayHello)
     http.HandleFunc("/api/v1/memstats", getMemStats)
+    
+    http.HandleFunc("/api/v1/suggestion", returnTrie)
     
     fmt.Println("Server listening on port 9000")
     // server is running, won't go past this line
     // otherwise, it would just stop the server
     http.ListenAndServe(":9000", nil)
     // if you want to listen on a network device, you would listen on that ip and then :
+    
 }

@@ -2,45 +2,53 @@ package trie
 
 import (
    "testing"
-   "fmt"
+   "os"
 )
 // TestTrie tests the trie
 func TestTrie(t *testing.T) {
+    
+    
     trie := NewTrie()
-    trie.AddEntry("Yay")
-    trie.AddEntry("Yaah")
-    // check that adding successfully by # words
-    trie.PrintTrie();
-    fmt.Println(trie.Words, "\n")
-}
-
-func TestMatch(t *testing.T) {
-    trie := NewTrie()
-    trie.AddEntry("Wow")
-    trie.AddEntry("Dude")
-    trie.AddEntry("woman")
-    trie.AddEntry("Women")
-    trie.AddEntry("Wowzers")
+    argFile := string(os.Args[1])
+    
+    if (len(argFile) > 1) {
+        if (trie.SuggestionService != "https://en.wikipedia.org/wiki/") {
+            t.Error("Wrong suggestion service found")
+        } else {
+            t.Log("The suggestion service is correct")
+        }
+    } else {
+        if (trie.SuggestionService != "http://www.dictionary.com/browse/") {
+            t.Error("Wrong suggestion service found")
+        } else {
+            t.Log("The suggestion service is correct")
+        }
+    }
+    
+    
+    words := trie.Words
+    trie.AddEntry("yodel", trie.WG)
+    trie.AddEntry("doodah", trie.WG)
+    if (trie.Words != words + 2) {
+        t.Error("Entering new entries either didn't increment amount of entries, or failed")
+    } else {
+        t.Log("Adding entries successful")
+    }
+    
+    // Test that 
     // returning right amount of matches
-    var max uint8 = 4
-    matches := *trie.FindEntries("wo", max)
-    matches2 := *trie.FindEntries("w", 2) 
-    fmt.Println("4 matches")
-    for i := 0; i < len(matches); i++ {
-        fmt.Println(matches[i])
-        
+    var max uint8 = 6
+    matches := *trie.FindEntries("aah", max)
+    if (len(matches) != 4) {
+        t.Error("Did not find appropriate amount of matches for 'aah'")
     }
     
-    fmt.Println("\n2 matches")
-    for i := 0; i < len(matches2); i++ {
-        fmt.Println(matches2[i])
-        
+    matches = *trie.FindEntries("a", max) 
+    if (len(matches) > int(max)) {
+        t.Error("Max exceeded, maximum is not valid")
+    } else {
+        t.Log("Max enabled and verified")
     }
-    
-    
-    
-    
 }
-
 // returning capitalized matches
 

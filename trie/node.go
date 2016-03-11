@@ -1,8 +1,5 @@
 package trie 
 
-import (
-    
-)
 
 // TrieNode for Trie
 type TrieNode struct {

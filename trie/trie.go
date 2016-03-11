@@ -7,26 +7,37 @@ import (
    "log"
    "io"
    "strings"
+   "runtime"
+   "sync"
 )
 
 // Trie type
 type Trie struct {
     Root *TrieNode
     Words int
+    mx sync.RWMutex
+    SuggestionService string
+    WG *sync.WaitGroup
 }
+
+// SearchTrie exports current instance of new trie
+var SearchTrie = NewTrie()
 
 // NewTrie constructor for the trie
 func NewTrie() *Trie {
     // head node?
-    dir := ".././data/"
+    dir := "./data/"
     NewTrie := &Trie{Root: NewTrieNode("")}
     //file := os.Args[1]
-    if (len(os.Args) > 1) {
+    if (len(os.Args) > 2) {
         file := string(os.Args[1])
-        NewTrie.ReadFile(dir + file);
+        go NewTrie.ReadFile(dir + file);
         fmt.Println("Reading " + file)
+        NewTrie.SuggestionService = "https://en.wikipedia.org/wiki/"
     } else {
-        NewTrie.ReadFile(dir + "text.txt")
+        go NewTrie.ReadFile(dir + "wordsEn.txt")
+        fmt.Println("Reading " + dir + "wordsEn.txt")
+        NewTrie.SuggestionService = "http://www.dictionary.com/browse/"
     }
     
     return NewTrie
@@ -34,8 +45,9 @@ func NewTrie() *Trie {
 
 // ReadFile reads the file
 func (trie *Trie) ReadFile(infilePath string) {
+        //time.Sleep(5 * time.Second)
         // open the file
-        infile, err := os.Open(infilePath)
+        infile, err := os.OpenFile(infilePath, os.O_RDONLY, 0644)
         if err != nil {
             log.Fatal(err)
         }
@@ -51,23 +63,27 @@ func (trie *Trie) ReadFile(infilePath string) {
 
 // LoadTrie loads the trie
 func (trie *Trie) LoadTrie(stream io.Reader) {
+    var memstats = new(runtime.MemStats)
+    runtime.ReadMemStats(memstats)
+    // fill out memstats with the current memory state
+    wg := sync.WaitGroup{}
     scanner := bufio.NewScanner(stream)
         scanner.Split(bufio.ScanLines)
     for scanner.Scan() {
-        trie.AddEntry(scanner.Text())
+        if (memstats.TotalAlloc >= 90000000) {
+            wg.Wait()
+        }   
+        
+        wg.Add(1)
+        trie.AddEntry(scanner.Text(), &wg)
+        
+        
         // each line
     }
 
     if err := scanner.Err(); err != nil {
         log.Fatal(err)
-    }/*
-    strings.NewReader(stream)
-    
-    s := "Hello World!"
-    
-    for idx, r := range s {
-        fmt.Println(idx, r)
-    }*/
+    }
 }
 
 // PrintHelper prints out the tree
@@ -93,15 +109,17 @@ func (trie *Trie) PrintTrie() {
 
 // AddEntry it into the trie
 // lower case for simplicity
-func (trie *Trie) AddEntry(entry string) {
+func (trie *Trie) AddEntry(entry string, wg *sync.WaitGroup) {
+    trie.mx.Lock()
     trie.Words++
-    strings.ToLower(entry)
+    entry = strings.ToLower(entry)
     trie.Root.AddEntrie(entry)
+    trie.mx.Unlock()
 }
 
 // AddEntrie takes a string and adds it to the trie
 func (node *TrieNode) AddEntrie(entry string) *TrieNode { 
-    if len(entry) == 0 {
+    if (len(entry) == 0) {
         node.complete = true;
         return node
     }
@@ -123,9 +141,9 @@ func (node *TrieNode) AddEntrie(entry string) *TrieNode {
     first := string(entry[0])
     rest := string(entry[1:])
     
-    child, ok := node.children[first];
+    child, err := node.children[first];
     
-    if !ok {
+    if !err {
         child = NewTrieNode(first)
         node.children[first] = child
     }
@@ -136,27 +154,35 @@ func (node *TrieNode) AddEntrie(entry string) *TrieNode {
 // FindEntries finds the matches of a given prefix
 func (trie *Trie) FindEntries(prefix string, max uint8) *[]string {
     matches := make([]string, 0, max)
-    prefix = strings.ToLower(prefix)
+   
     node := trie.Root // start with the root
-    updated := false
+    count := 0
     // go through all of the prefix items
     for i := 0; i < len(prefix); i++ {
         // go over all of the node's children
-        for key, child := range node.children {
-            if (string(prefix[i]) == key) {
-                node = child
-                updated = true
+        if len(node.children) > 0 {
+            for key, child := range node.children {
+                if (strings.ToLower(string(prefix[i])) == strings.ToLower(key)) {
+                    if child != nil {
+                        node = child
+                        count++ 
+                    }
+                }
             }
         }
         // if the node hasn't been updated after ranging all of the current root's items
-        if (!updated) {
-            return nil
-        }
+
         
         // otherwise keep going!
     }
+    if (count != len(prefix)) {
+        return nil
+    }
+    // I know this isn't necessary but I'm trying everything to get rid of this error
+    if node != nil {
+        match(node, &matches, strings.ToLower(prefix), max)
+    }
     
-    match(node, &matches, prefix, max)
     
     return &matches
     
@@ -165,14 +191,16 @@ func (trie *Trie) FindEntries(prefix string, max uint8) *[]string {
 }
 
 func match(node *TrieNode, matches *[]string, prefix string, max uint8) {
-    if (node.complete && uint8(len(*matches)) < max) {
+    if (node != nil && node.complete && len(*matches) < int(max)) {
         *matches = append(*matches, prefix)
     } 
     if (len(node.children) > 0 ) {
         for key, child := range node.children {
             newEntry := prefix + key
-           
-            match(child, matches, newEntry, max)
+            if child != nil {
+                match(child, matches, newEntry, max)
+            }
+            
         } 
     }
 }
