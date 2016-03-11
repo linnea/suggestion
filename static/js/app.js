@@ -1,7 +1,9 @@
 var app = angular.module("search", []);
 
 app.controller("SuggestCtrl", function($scope, $http) {
-    $scope.isLoading = false;
+    $scope.loading = true;
+    // hide the fact that its loading initially
+    
     $scope.max = 20;
     $scope.$watch('search', function() {
         fetch($scope);
@@ -13,7 +15,9 @@ app.controller("SuggestCtrl", function($scope, $http) {
         fetch($scope);
     }
     function fetch($scope) {
+            $scope.loading = false;       
             var max = $scope.max;
+            // if the max somehow ranges further than 10-50, fix it
             if (max > 50) {
                 max = 50;
                 $scope.max = 50
@@ -21,41 +25,37 @@ app.controller("SuggestCtrl", function($scope, $http) {
                 max = 10;
                 $scope.max = 10;
             }
-            var uri = "/api/v1/suggestion?q=" + $scope.search + "&max=" + max;
             $http({
                 method: "get",
-                url: uri,
+                url: "/api/v1/suggestion?q=" + $scope.search + "&max=" + max,
                 timeout: 5000
             }).success(
                 function(response){
-                    $scope.isLoading = false;
-                    $scope.results = response.Results;
-                    $scope.service = 
-                    response.Service;
+                    if (response.Results == null) {
+                        // there are no results found
+                        $scope.noResult = true;                   // hide the previous results
+                        $scope.results = null;
+                    } else if(response.Results != "undefined") {
+                        // there are results
+                        $scope.noResult = false;
+                        $scope.results = response.Results;
+                        // set to the correct linking service
+                        $scope.service = 
+                        response.Service;
+                       
+                        $scope.loading = false;
+                        
+                    } else {
+                        // tell the user that it's loading
+                        $scope.loading = true;
+                        console.log(response, "Results are still loading, stay tuned")
+                    }
+                    
                 }).error(function(response) {
                     $scope.isLoading = true;
                     console.log(response, "Results are still loading, stay tuned")
                 });
                 
     }
-    
-    /*
-        $http.post('/api/v1/suggestion/', { "data" : $scope.keywords}).
-		success(function(data, status) {
-			$scope.status = status;
-			$scope.data = data;
-			$scope.result = data; // Show result from server in our <pre></pre> element
-		})
-		.
-		error(function(data, status) {
-			$scope.data = data || "Request failed";
-			$scope.status = status;			
-		});*/
 });
-    
-    /*
-    $http({method: 'GET', url: '/api/v1/suggestion/' + $routeParams.q + $routeParams.max}).success(function(data) {
-      // RELAY THAT INFO
-      controller.results = data;
-      
-  });*/
+   

@@ -2,30 +2,16 @@ package trie
 
 import (
    "testing"
-   "os"
+   "flag"
+   "fmt"
 )
 // TestTrie tests the trie
 func TestTrie(t *testing.T) {
+    flag.Parse()
     
+    trie := SearchTrie
     
-    trie := NewTrie()
-    argFile := string(os.Args[1])
-    
-    if (len(argFile) > 1) {
-        if (trie.SuggestionService != "https://en.wikipedia.org/wiki/") {
-            t.Error("Wrong suggestion service found")
-        } else {
-            t.Log("The suggestion service is correct")
-        }
-    } else {
-        if (trie.SuggestionService != "http://www.dictionary.com/browse/") {
-            t.Error("Wrong suggestion service found")
-        } else {
-            t.Log("The suggestion service is correct")
-        }
-    }
-    
-    
+    // test the amount of entries added
     words := trie.Words
     trie.AddEntry("yodel", trie.WG)
     trie.AddEntry("doodah", trie.WG)
@@ -38,12 +24,13 @@ func TestTrie(t *testing.T) {
     // Test that 
     // returning right amount of matches
     var max uint8 = 6
-    matches := *trie.FindEntries("aah", max)
+    matches := trie.FindEntries("aah", max)
+    fmt.Println(matches)
     if (len(matches) != 4) {
-        t.Error("Did not find appropriate amount of matches for 'aah'")
+        t.Error("Did not find appropriate amount of matches for 'aah', found ", len(matches))
     }
     
-    matches = *trie.FindEntries("a", max) 
+    matches = trie.FindEntries("a", max) 
     if (len(matches) > int(max)) {
         t.Error("Max exceeded, maximum is not valid")
     } else {

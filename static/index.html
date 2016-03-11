@@ -6,6 +6,7 @@
     pre {
         font-size: 12px;
         font-family: 'Lato', 'Open Sans', sans-serif;
+        padding: 5px;
     }
 </style>
 
@@ -38,7 +39,12 @@
         <div class="row">
             <pre>
             <table ng-model="results">
-                
+                <div ng-show="loading" class="alert alert-warn">
+                    The results are loading, type in your query.
+                </div>
+                <div ng-show="noResult" class="alert alert-warn">
+                    No results found.
+                </div>
                 <tr ng-repeat="result in results">
                     <td><a href="{{service}}{{result}}">{{result}}</a></td>
                 </tr>
